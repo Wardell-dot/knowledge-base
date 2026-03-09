@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Day 29 — Knowledge Base</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Fraunces:ital,wght@0,300;0,600;0,700;0,900;1,300&display=swap"
+        rel="stylesheet" />
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #090a0f;
+            --surface: #0e0f16;
+            --panel: #12131b;
+            --border: #1d1e2b;
+            --border-hi: #2c2d3e;
+            --accent: #f5a623;
+            --accent-dim: rgba(245, 166, 35, 0.07);
+            --accent-mid: rgba(245, 166, 35, 0.15);
+            --success: #4dffb0;
+            --error: #ff4d6d;
+            --text: #c8cad8;
+            --text-hi: #e8eaf5;
+            --muted: #3e4055;
+            --muted-hi: #5e6080;
+
+            --tag-note: rgba(245, 166, 35, 0.08);
+            --tag-snippet: rgba(77, 255, 176, 0.08);
+            --tag-link: rgba(100, 160, 255, 0.08);
+
+            --col-note: #f5a623;
+            --col-snippet: #4dffb0;
+            --col-link: #64a0ff;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'IBM Plex Mono', monospace;
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            grid-template-rows: auto 1fr;
+        }
+
+        /* ── AMBIENT ── */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -10vh;
+            left: -10vw;
+            width: 50vw;
+            height: 50vh;
+            background: radial-gradient(ellipse, rgba(245, 166, 35, 0.04) 0%, transparent 65%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── TOP BAR ── */
+        .topbar {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 28px;
+            height: 56px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .brand {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+        }
+
+        .brand-name {
+            font-family: 'Fraunces', serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: -0.02em;
+        }
+
+        .brand-ver {
+            font-size: 10px;
+            color: var(--muted);
+            letter-spacing: 0.1em;
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .storage-bar-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .storage-label {
+            font-size: 9px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .storage-track {
+            width: 80px;
+            height: 3px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .storage-fill {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        .storage-pct {
+            font-size: 9px;
+            color: var(--muted-hi);
+        }
+
+        /* ── SIDEBAR ── */
+        .sidebar {
+            grid-column: 1;
+            border-right: 1px solid var(--border);
+            background: var(--surface);
+            padding: 24px 0;
+            position: sticky;
+            top: 56px;
+            height: calc(100vh - 56px);
+            overflow-y: auto;
+            z-index: 10;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: var(--border-hi);
+        }
+
+        .sidebar-section {
+            padding: 0 20px;
+            margin-bottom: 28px;
+        }
+
+        .sidebar-label {
+            font-size: 9px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 10px;
+            padding-left: 2px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background 0.13s;
+            margin-bottom: 2px;
+            border: 1px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: var(--panel);
+        }
+
+        .nav-item.active {
+            background: var(--panel);
+            border-color: var(--border);
+        }
+
+        .nav-item.active .nav-label {
+            color: var(--text-hi);
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 1px;
+            flex-shrink: 0;
+        }
+
+        .nav-label {
+            font-size: 11px;
+            color: var(--muted-hi);
+            letter-spacing: 0.04em;
+        }
+
+        .nav-count {
+            font-size: 10px;
+            color: var(--muted);
+            background: var(--border);
+            padding: 1px 6px;
+            border-radius: 2px;
+            min-width: 22px;
+            text-align: center;
+        }
+
+        .sidebar-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 16px 20px;
+        }
+
+        /* ── MAIN ── */
+        .main {
+            grid-column: 2;
+            padding: 32px 36px;
+            min-height: calc(100vh - 56px);
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── PAGE HEADER ── */
+        .page-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 28px;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .page-title {
+            font-family: 'Fraunces', serif;
+            font-size: clamp(28px, 4vw, 42px);
+            font-weight: 900;
+            color: #fff;
+            letter-spacing: -0.03em;
+            line-height: 1.05;
+        }
+
+        .page-title span {
+            color: var(--accent);
+            font-style: italic;
+        }
+
+        .page-meta {
+            font-size: 10px;
+            color: var(--muted);
+            margin-top: 6px;
+            letter-spacing: 0.06em;
+        }
+
+        /* ── ADD FORM ── */
+        .add-form {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-left: 2px solid var(--accent);
+            padding: 22px 24px;
+            margin-bottom: 28px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 140px;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .form-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .field-label {
+            font-size: 9px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        input,
+        select,
+        textarea {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-hi);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12px;
+            padding: 9px 12px;
+            outline: none;
+            transition: border-color 0.13s;
+            border-radius: 0;
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--accent);
+            background: rgba(245, 166, 35, 0.02);
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            color: var(--muted);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+            line-height: 1.7;
+        }
+
+        .form-bottom {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .char-count {
+            font-size: 10px;
+            color: var(--muted);
+        }
+
+        .btn-add {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            padding: 10px 22px;
+            background: var(--accent);
+            color: #000;
+            border: none;
+            cursor: pointer;
+            transition: all 0.13s;
+            border-radius: 0;
+        }
+
+        .btn-add:hover {
+            background: #f7b84a;
+            transform: translateY(-1px);
+        }
+
+        .btn-add:active {
+            transform: none;
+        }
+
+        /* ── SEARCH ── */
+        .search-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: stretch;
+        }
+
+        .search-wrap {
+            flex: 1;
+            position: relative;
+        }
+
+        .search-prefix {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+            color: var(--muted);
+            pointer-events: none;
+        }
+
+        .search-input {
+            padding-left: 40px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+        }
+
+        .search-input:focus {
+            border-color: var(--accent);
+        }
+
+        /* ── ENTRIES ── */
+        .entries-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .entries-count {
+            font-size: 10px;
+            color: var(--muted);
+            letter-spacing: 0.08em;
+        }
+
+        .entries-count strong {
+            color: var(--text);
+        }
+
+        .btn-clear-all {
+            font-size: 9px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--muted);
+            background: none;
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.13s;
+            border-radius: 2px;
+        }
+
+        .btn-clear-all:hover {
+            border-color: var(--error);
+            color: var(--error);
+        }
+
+        .entries-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
+        }
+
+        /* ── ENTRY ── */
+        .entry {
+            background: var(--panel);
+            padding: 20px 22px;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 14px;
+            align-items: start;
+            transition: background 0.15s;
+            animation: entryIn 0.22s ease both;
+            position: relative;
+        }
+
+        @keyframes entryIn {
+            from {
+                opacity: 0;
+                transform: translateX(-6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        .entry::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 2px;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        .entry:hover {
+            background: #141520;
+        }
+
+        .entry:hover::before {
+            opacity: 1;
+        }
+
+        .entry-type-note {
+            --entry-col: var(--col-note);
+        }
+
+        .entry-type-snippet {
+            --entry-col: var(--col-snippet);
+        }
+
+        .entry-type-link {
+            --entry-col: var(--col-link);
+        }
+
+        .entry::before {
+            background: var(--entry-col);
+        }
+
+        .entry-top {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .entry-type-badge {
+            font-size: 9px;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 2px 8px;
+            border-radius: 2px;
+            border: 1px solid transparent;
+        }
+
+        .badge-note {
+            color: var(--col-note);
+            background: var(--tag-note);
+            border-color: rgba(245, 166, 35, 0.2);
+        }
+
+        .badge-snippet {
+            color: var(--col-snippet);
+            background: var(--tag-snippet);
+            border-color: rgba(77, 255, 176, 0.2);
+        }
+
+        .badge-link {
+            color: var(--col-link);
+            background: var(--tag-link);
+            border-color: rgba(100, 160, 255, 0.2);
+        }
+
+        .entry-title {
+            font-family: 'Fraunces', serif;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-hi);
+            letter-spacing: -0.01em;
+        }
+
+        .entry-body {
+            font-size: 12px;
+            color: var(--muted-hi);
+            line-height: 1.75;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .entry-body.is-code {
+            font-family: 'IBM Plex Mono', monospace;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 10px 12px;
+            font-size: 11px;
+            color: var(--col-snippet);
+            border-left: 2px solid var(--col-snippet);
+        }
+
+        .entry-footer {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .entry-date {
+            font-size: 9px;
+            color: var(--muted);
+            letter-spacing: 0.06em;
+        }
+
+        .entry-tag {
+            font-size: 9px;
+            color: var(--muted);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 1px 7px;
+            border-radius: 2px;
+            letter-spacing: 0.06em;
+        }
+
+        .entry-actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .action-btn {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 9px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 5px 10px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--muted-hi);
+            cursor: pointer;
+            transition: all 0.13s;
+            border-radius: 2px;
+        }
+
+        .action-btn:hover {
+            border-color: var(--error);
+            color: var(--error);
+        }
+
+        .action-btn.copy:hover {
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        /* ── EMPTY ── */
+        .empty-state {
+            background: var(--panel);
+            padding: 80px 32px;
+            text-align: center;
+            border: none;
+        }
+
+        .empty-glyph {
+            font-family: 'Fraunces', serif;
+            font-size: 64px;
+            font-weight: 900;
+            color: var(--border-hi);
+            line-height: 1;
+            margin-bottom: 16px;
+        }
+
+        .empty-title {
+            font-family: 'Fraunces', serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--muted-hi);
+            margin-bottom: 8px;
+        }
+
+        .empty-sub {
+            font-size: 11px;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        /* ── TOAST ── */
+        .toast {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-left: 2px solid var(--accent);
+            padding: 12px 18px;
+            font-size: 11px;
+            color: var(--text);
+            letter-spacing: 0.04em;
+            z-index: 1000;
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all 0.2s ease;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            transform: none;
+            opacity: 1;
+        }
+
+        @media (max-width: 780px) {
+            body {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .main {
+                padding: 24px 20px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- TOP BAR -->
+    <div class="topbar">
+        <div class="brand">
+            <span class="brand-name">Memoria</span>
+            <span class="brand-ver">v1.0</span>
+        </div>
+        <div class="topbar-right">
+            <div class="storage-bar-wrap">
+                <span class="storage-label">Storage</span>
+                <div class="storage-track">
+                    <div class="storage-fill" id="storageFill" style="width:0%"></div>
+                </div>
+                <span class="storage-pct" id="storagePct">0%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar-section">
+            <div class="sidebar-label">View</div>
+            <div class="nav-item active" onclick="setFilter('all', this)">
+                <div class="nav-left">
+                    <div class="nav-dot" style="background:#5e6080"></div>
+                    <span class="nav-label">All Entries</span>
+                </div>
+                <span class="nav-count" id="count-all">0</span>
+            </div>
+            <div class="nav-item" onclick="setFilter('note', this)">
+                <div class="nav-left">
+                    <div class="nav-dot" style="background:var(--col-note)"></div>
+                    <span class="nav-label">Notes</span>
+                </div>
+                <span class="nav-count" id="count-note">0</span>
+            </div>
+            <div class="nav-item" onclick="setFilter('snippet', this)">
+                <div class="nav-left">
+                    <div class="nav-dot" style="background:var(--col-snippet)"></div>
+                    <span class="nav-label">Code Snippets</span>
+                </div>
+                <span class="nav-count" id="count-snippet">0</span>
+            </div>
+            <div class="nav-item" onclick="setFilter('link', this)">
+                <div class="nav-left">
+                    <div class="nav-dot" style="background:var(--col-link)"></div>
+                    <span class="nav-label">Links</span>
+                </div>
+                <span class="nav-count" id="count-link">0</span>
+            </div>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-label">localStorage Keys</div>
+            <div class="nav-item" style="cursor:default">
+                <div class="nav-left">
+                    <span class="nav-label" style="font-size:9px;color:var(--muted)">memoria_entries</span>
+                </div>
+            </div>
+            <div class="nav-item" style="cursor:default">
+                <div class="nav-left">
+                    <span class="nav-label" style="font-size:9px;color:var(--muted)">memoria_filter</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+        <div class="page-header">
+            <div>
+                <div class="page-title">Your <span>Knowledge</span><br>Base.</div>
+                <div class="page-meta">// Persists via localStorage — survives page refresh</div>
+            </div>
+        </div>
+
+        <!-- ADD FORM -->
+        <div class="add-form">
+            <div class="form-row">
+                <div class="form-field">
+                    <label class="field-label">Title</label>
+                    <input type="text" id="entryTitle" placeholder="Give this entry a name..." />
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Tag</label>
+                    <input type="text" id="entryTag" placeholder="e.g. react, css, idea..." />
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Type</label>
+                    <select id="entryType">
+                        <option value="note">Note</option>
+                        <option value="snippet">Code Snippet</option>
+                        <option value="link">Link</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-field" style="margin-bottom:14px">
+                <label class="field-label">Content</label>
+                <textarea id="entryContent" placeholder="Write your note, paste your code, or drop a URL..."
+                    oninput="updateCharCount()"></textarea>
+            </div>
+            <div class="form-bottom">
+                <span class="char-count" id="charCount">0 characters</span>
+                <button class="btn-add" onclick="addEntry()">Save Entry</button>
+            </div>
+        </div>
+
+        <!-- SEARCH -->
+        <div class="search-row">
+            <div class="search-wrap">
+                <span class="search-prefix">/&gt;</span>
+                <input class="search-input" type="text" id="searchInput" placeholder="Search entries..."
+                    oninput="renderEntries()" />
+            </div>
+        </div>
+
+        <!-- ENTRIES -->
+        <div class="entries-header">
+            <span class="entries-count">Showing <strong id="shownCount">0</strong> entries</span>
+            <button class="btn-clear-all" onclick="clearAll()">Clear All</button>
+        </div>
+
+        <div class="entries-list" id="entriesList"></div>
+    </main>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ─────────────────────────────────────────────
+        // STORAGE LAYER
+        // All localStorage interaction lives here.
+        // The rest of the app never touches localStorage directly.
+        // ─────────────────────────────────────────────
+
+        const Storage = {
+            KEY: 'memoria_entries',
+
+            // JSON.stringify converts our array to a string for storage
+            save(entries) {
+                localStorage.setItem(this.KEY, JSON.stringify(entries));
+            },
+
+            // JSON.parse converts the string back into a real array
+            load() {
+                const raw = localStorage.getItem(this.KEY);
+                return raw ? JSON.parse(raw) : [];
+                // ↑ If nothing saved yet, return empty array
+            },
+
+            remove(id) {
+                const entries = this.load().filter(e => e.id !== id);
+                this.save(entries);
+            },
+
+            clear() {
+                localStorage.removeItem(this.KEY);
+            },
+
+            // Calculate how much space our data is using
+            usage() {
+                const raw = localStorage.getItem(this.KEY) || '';
+                const bytes = new Blob([raw]).size;
+                // localStorage limit is ~5MB = 5,242,880 bytes
+                return Math.min((bytes / 5242880) * 100, 100).toFixed(1);
+            }
+        };
+
+        // ─────────────────────────────────────────────
+        // STATE
+        // ─────────────────────────────────────────────
+
+        let activeFilter = localStorage.getItem('memoria_filter') || 'all';
+
+        // ─────────────────────────────────────────────
+        // INIT
+        // ─────────────────────────────────────────────
+
+        window.onload = () => {
+            renderEntries();
+            updateStorageBar();
+            updateCounts();
+
+            // Restore active filter nav item visually
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+        };
+
+        // ─────────────────────────────────────────────
+        // ADD ENTRY
+        // ─────────────────────────────────────────────
+
+        function addEntry() {
+            const title = document.getElementById('entryTitle').value.trim();
+            const tag = document.getElementById('entryTag').value.trim();
+            const type = document.getElementById('entryType').value;
+            const content = document.getElementById('entryContent').value.trim();
+
+            if (!title) { showToast('Title is required'); return; }
+            if (!content) { showToast('Content is required'); return; }
+
+            // Build the entry object
+            const entry = {
+                id: Date.now(),
+                title,
+                tag: tag || 'general',
+                type,
+                content,
+                created: new Date().toISOString(),
+            };
+
+            // Load existing, add new one to front, save back
+            const entries = Storage.load();
+            entries.unshift(entry);
+            Storage.save(entries);
+
+            // Reset form
+            document.getElementById('entryTitle').value = '';
+            document.getElementById('entryTag').value = '';
+            document.getElementById('entryContent').value = '';
+            document.getElementById('charCount').textContent = '0 characters';
+
+            renderEntries();
+            updateStorageBar();
+            updateCounts();
+            showToast('Entry saved to localStorage');
+        }
+
+        // ─────────────────────────────────────────────
+        // DELETE
+        // ─────────────────────────────────────────────
+
+        function deleteEntry(id) {
+            Storage.remove(id);
+            renderEntries();
+            updateStorageBar();
+            updateCounts();
+            showToast('Entry removed');
+        }
+
+        // ─────────────────────────────────────────────
+        // COPY TO CLIPBOARD
+        // ─────────────────────────────────────────────
+
+        function copyEntry(content) {
+            navigator.clipboard.writeText(content).then(() => {
+                showToast('Copied to clipboard');
+            });
+        }
+
+        // ─────────────────────────────────────────────
+        // CLEAR ALL
+        // ─────────────────────────────────────────────
+
+        function clearAll() {
+            if (!confirm('Remove all entries from localStorage?')) return;
+            Storage.clear();
+            renderEntries();
+            updateStorageBar();
+            updateCounts();
+            showToast('localStorage cleared');
+        }
+
+        // ─────────────────────────────────────────────
+        // FILTER
+        // ─────────────────────────────────────────────
+
+        function setFilter(filter, el) {
+            activeFilter = filter;
+            // Save filter preference to localStorage too
+            localStorage.setItem('memoria_filter', filter);
+
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            if (el) el.classList.add('active');
+
+            renderEntries();
+        }
+
+        // ─────────────────────────────────────────────
+        // RENDER ENTRIES
+        // ─────────────────────────────────────────────
+
+        function renderEntries() {
+            const entries = Storage.load();
+            const query = document.getElementById('searchInput').value.toLowerCase();
+
+            let filtered = entries;
+
+            // Filter by type
+            if (activeFilter !== 'all') {
+                filtered = filtered.filter(e => e.type === activeFilter);
+            }
+
+            // Filter by search
+            if (query) {
+                filtered = filtered.filter(e =>
+                    e.title.toLowerCase().includes(query) ||
+                    e.content.toLowerCase().includes(query) ||
+                    e.tag.toLowerCase().includes(query)
+                );
+            }
+
+            document.getElementById('shownCount').textContent = filtered.length;
+
+            const list = document.getElementById('entriesList');
+
+            if (filtered.length === 0) {
+                list.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-glyph">M</div>
+          <div class="empty-title">${entries.length === 0 ? 'Nothing saved yet' : 'No results found'}</div>
+          <div class="empty-sub">${entries.length === 0
+                        ? 'Add your first note, snippet, or link above.\nIt will persist even after you close this tab.'
+                        : 'Try a different search or filter.'
+                    }</div>
+        </div>`;
+                return;
+            }
+
+            list.innerHTML = filtered.map((entry, i) => {
+                const date = new Date(entry.created).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                const isCode = entry.type === 'snippet';
+
+                return `
+        <div class="entry entry-type-${entry.type}" style="animation-delay:${i * 30}ms">
+          <div>
+            <div class="entry-top">
+              <span class="entry-type-badge badge-${entry.type}">${entry.type}</span>
+              <span class="entry-title">${escapeHtml(entry.title)}</span>
+            </div>
+            <div class="entry-body ${isCode ? 'is-code' : ''}">${escapeHtml(entry.content)}</div>
+            <div class="entry-footer">
+              <span class="entry-date">${date}</span>
+              <span class="entry-tag">${escapeHtml(entry.tag)}</span>
+            </div>
+          </div>
+          <div class="entry-actions">
+            <button class="action-btn copy" onclick="copyEntry(\`${escapeAttr(entry.content)}\`)">Copy</button>
+            <button class="action-btn" onclick="deleteEntry(${entry.id})">Delete</button>
+          </div>
+        </div>
+      `;
+            }).join('');
+        }
+
+        // ─────────────────────────────────────────────
+        // UPDATE SIDEBAR COUNTS
+        // ─────────────────────────────────────────────
+
+        function updateCounts() {
+            const entries = Storage.load();
+            document.getElementById('count-all').textContent = entries.length;
+            document.getElementById('count-note').textContent = entries.filter(e => e.type === 'note').length;
+            document.getElementById('count-snippet').textContent = entries.filter(e => e.type === 'snippet').length;
+            document.getElementById('count-link').textContent = entries.filter(e => e.type === 'link').length;
+        }
+
+        // ─────────────────────────────────────────────
+        // STORAGE BAR
+        // ─────────────────────────────────────────────
+
+        function updateStorageBar() {
+            const pct = Storage.usage();
+            document.getElementById('storageFill').style.width = `${pct}%`;
+            document.getElementById('storagePct').textContent = `${pct}%`;
+        }
+
+        // ─────────────────────────────────────────────
+        // CHAR COUNT
+        // ─────────────────────────────────────────────
+
+        function updateCharCount() {
+            const len = document.getElementById('entryContent').value.length;
+            document.getElementById('charCount').textContent = `${len} character${len !== 1 ? 's' : ''}`;
+        }
+
+        // ─────────────────────────────────────────────
+        // TOAST
+        // ─────────────────────────────────────────────
+
+        let toastTimer;
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+        }
+
+        // ─────────────────────────────────────────────
+        // HELPERS
+        // ─────────────────────────────────────────────
+
+        function escapeHtml(str) {
+            const d = document.createElement('div');
+            d.textContent = str;
+            return d.innerHTML;
+        }
+
+        function escapeAttr(str) {
+            return str.replace(/`/g, '\\`').replace(/\$/g, '\\$');
+        }
+    </script>
+</body>
+
+</html>
